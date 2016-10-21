@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script type="text/javascript" src="//thingspeak.com/highcharts-3.0.8.js"></script>
+    <script type="text/javascript" src="//thingspeak.com/exporting.js"></script>  
+<link href = "static/source.css" rel = "stylesheet">
+    
+    
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" href="css/reset.css"> <!-- CSS reset -->
+<link rel="stylesheet" href="css/style.css"> <!-- Resource style -->
+<script src="js/modernizr.js"></script> <!-- Modernizr -->    
+    <title>real_time_data</title>
+</head>
+<body>  
+    <div id="wrapper" style = "">
+        <div id="info">
+	<div align = "center"><h1>Real Time Data</h1></div>
+        <div id = "container" style = " width : 750px; height : 400px;  margin-left: 200px; margin-top:50px" > 
+        </div>
+<script type="text/javascript">
+  // variables for the first series
+  var series_1_channel_id = 172399;
+  var series_1_field_number = 1;
+  var series_1_read_api_key = 'BN5I414CVJFN51UF';
+  var series_1_results = 20;
+  var series_1_color = '#d62020';
+
+  // variables for the second series
+  var series_2_channel_id = 172399;
+  var series_2_field_number = 2;
+  var series_2_read_api_key = 'BN5I414CVJFN51UF';
+  var series_2_results = 20;
+  var series_2_color = '#00aaff';
+
+  // variables for the third series
+  var series_3_channel_id = 172399;
+  var series_3_field_number = 3;
+  var series_3_read_api_key = 'BN5I414CVJFN51UF';
+  var series_3_results = 20;
+  var series_3_color = '#00FFFF';
+
+  // variables for the fourth series
+  var series_4_channel_id = 172399;
+  var series_4_field_number = 4;
+  var series_4_read_api_key = 'BN5I414CVJFN51UF';
+  var series_4_results = 20;
+  var series_4_color = '#FF00FF';
+
+  // chart title
+  var chart_title = 'Temperature';
+  // y axis title
+  var y_axis_title = 'Values';
+
+  // user's timezone offset
+  var my_offset = new Date().getTimezoneOffset();
+  // chart variable
+  var my_chart;
+
+  // when the document is ready
+  $(document).on('ready', function() {
+    // add a blank chart
+    addChart();
+    // add the first series
+    addSeries(series_1_channel_id, series_1_field_number, series_1_read_api_key, series_1_results, series_1_color);
+    // add the second series
+    addSeries(series_2_channel_id, series_2_field_number, series_2_read_api_key, series_2_results, series_2_color);
+ // add the third series
+    addSeries(series_3_channel_id, series_3_field_number, series_3_read_api_key, series_3_results, series_3_color);
+ // add the forth series
+    addSeries(series_4_channel_id, series_4_field_number, series_4_read_api_key, series_4_results, series_4_color);
+    
+  });
+
+  // add the base chart
+  function addChart() {
+    // variable for the local date in milliseconds
+    var localDate;
+
+    // specify the chart options
+    var chartOptions = {
+      chart: {
+        renderTo: 'chart-container',
+        defaultSeriesType: 'line',
+        backgroundColor: '#ffffff',
+        events: { }
+      },
+      title: { text: chart_title },
+      plotOptions: {
+        series: {
+          marker: { radius: 3 },
+          animation: true,
+          step: false,
+          borderWidth: 0,
+          turboThreshold: 0
+        }
+      },
+      tooltip: {
+        // reformat the tooltips so that local times are displayed
+        formatter: function() {
+          var d = new Date(this.x + (my_offset*60000));
+          var n = (this.point.name === undefined) ? '' : '<br>' + this.point.name;
+          return this.series.name + ':<b>' + this.y + '</b>' + n + '<br>' + d.toDateString() + '<br>' + d.toTimeString().replace(/\(.*\)/, "");
+        }
+      },
+      xAxis: {
+        type: 'datetime',
+        title: { text: 'Date' }
+      },
+      yAxis: { title: { text: y_axis_title } },
+      exporting: { enabled: false },
+      legend: { enabled: false },
+      credits: {
+        text: 'ThingSpeak.com',
+        href: 'https://thingspeak.com/',
+        style: { color: '#D62020' }
+      }
+    };
+
+    // draw the chart
+    my_chart = new Highcharts.Chart(chartOptions);
+  }
+
+  // add a series to the chart
+  function addSeries(channel_id, field_number, api_key, results, color) {
+    var field_name = 'field' + field_number;
+
+    // get the data with a webservice call
+    $.getJSON('https://api.thingspeak.com/channels/' + channel_id + '/fields/' + field_number + '.json?offset=0&round=2&results=' + results + '&api_key=' + api_key, function(data) {
+
+      // blank array for holding chart data
+      var chart_data = [];
+
+      // iterate through each feed
+      $.each(data.feeds, function() {
+        var point = new Highcharts.Point();
+        // set the proper values
+        var value = this[field_name];
+        point.x = getChartDate(this.created_at);
+        point.y = parseFloat(value);
+        // add location if possible
+        if (this.location) { point.name = this.location; }
+        // if a numerical value exists add it
+        if (!isNaN(parseInt(value))) { chart_data.push(point); }
+      });
+
+      // add the chart data
+      my_chart.addSeries({ data: chart_data, name: data.channel[field_name], color: color });
+    });
+  }
+
+  // converts date format from JSON
+  function getChartDate(d) {
+    // offset in minutes is converted to milliseconds and subtracted so that chart's x-axis is correct
+    return Date.parse(d) - (my_offset * 60000);
+  }
+
+</script>
+
+    </div>
+<div id="info-content"></div>
+</div>
+    <input type="checkbox" id="menu" name="menu" class="menu-checkbox">
+      <div class="menu">
+        <label class="menu-toggle" for="menu"><span>Toggle</span></label>
+        <ul>
+          <li>
+            <a href="http://ec544group1.hopto.org:3002">Home</a>
+          </li>
+          <li>
+            <a href="http://ec544group1.hopto.org:3002/realtime">RealTime</a>
+          </li>
+          <li>
+            <a href="http://ec544group1.hopto.org:3002/history">History</a>
+          </li>
+          <li>
+            <a href="http://ec544group1.hopto.org:3002/realtime_thingspeak">RealTime_thinspeak</a>
+          </li>
+        </ul>
+      </div>
+    </div><!-- #wrapper -->
+<!--***********************/-->
+    <!--<div>
+    <h2 align ="center">Historical Data</h2>  
+    </div>-->
+    
+    
+    
+</body>
+</html>
+
+<!--
+        <script type="text/javascript">
+	    Highcharts.setOptions({
+			plotOptions:{
+				series:{
+					animation:false
+				}
+			}
+		});
+            setInterval(function(){
+                var url1 ='https://thingspeak.com/channels/172399/feeds.json?callback=?&amp;offset=0&amp;start=',
+                    url2 = '&amp;?key=BN5I414CVJFN51UF';
+                       
+	            var ddd = new Date();
+                var m = ddd.getMonth()+1;
+                
+                var time = ddd.getFullYear()+"-"+ m +"-"+ddd.getDate()+" "+ddd.getHours() + ":"+ddd.getMinutes()+ ":"  +ddd.getSeconds();
+                var url = url1+time+url2+"";
+                
+                
+                $.getJSON(url, callbackfunction);
+                function callbackfunction(data){
+			     var times_x = new Array(),
+			         sensor_1 = new Array(),
+			         sensor_2 = new Array(),
+			         sensor_3 = new Array(),
+			         sensor_4 = new Array(),
+			         avg = new Array();
+			     var maxtemp = 0, mintemp = 999;
+                 var temp = data.feeds;
+                    var index1 = 0, index2 =0, index3 = 0, index4 = 0;
+                    
+                    for(var index = 0; index < temp.length; index++){
+                         //alert(data[index]['time']);
+                         times_x.push(data[index]['time']);
+                         var sensor_data = new Array();
+                         
+                         sensor_data = data[index]['data'].split(",");
+                         for(var j = 0; j < sensor_data.length; j ++){
+                             var row = sensor_data[j].split(":");
+                             switch(row[0]){
+                                     case('sensor_1'): sensor_1[index] = parseFloat(row[1]);
+                                     case('sensor_2'): sensor_2[index] = parseFloat(row[1]);
+                                     case('sensor_3'): sensor_3[index] = parseFloat(row[1]);  
+			                         case('sensor_4'): sensor_4[index] = parseFloat(row[1]); 
+                                     case('avg'): avg[index] = parseFloat(row[1]);
+                                     maxtemp = Math.max(maxtemp, parseFloat(row[1]));
+                                     mintemp = Math.min(mintemp, parseFloat(row[1]));
+                             }
+                         }
+                    }
+                    $('#container').highcharts({
+                            chart: {
+			      animation : false,
+                              backgroundColor: 'rgba(255, 255, 255, 0.80)'
+                            },
+                            title: {
+                                text: 'Real Time Data',
+                                x: -20 //center
+                            },
+                            subtitle: {
+                                text: 'EC544-Chanllenge4-Group1',
+                                x: -20
+                            },
+                            xAxis: {
+                                text:'/date',
+                                categories: times_x
+                            },
+                            yAxis: {
+                                text:'/centigrade',
+                                max :maxtemp+0.3,
+                                min :mintemp-0.5,
+                                tickInterval: 1,
+                                title: {
+                                    text: 'Temperature (°C)'
+                                },
+                                plotLines: [{
+                                    value: 0,
+                                    width: 5,
+                                    color: '#000000'
+                                }]
+                            },
+                            tooltip: {
+                                valueSuffix: '°C'
+                            },
+                            legend: {
+                                layout: 'vertical',
+                                align: 'right',
+                                verticalAlign: 'middle',
+                                borderWidth: 0
+                            },
+                            series: [{
+                                name: 'sensor_1',
+                                data: sensor_1
+                            }, {
+                                name: 'sensor_2',
+                                data: sensor_2
+                            }, {
+                                name: 'sensor_3',
+                                data: sensor_3
+                            }, 
+                            {
+                                name: 'sensor_4',
+                                data: sensor_4
+                            }, 
+
+                            {
+                                name: 'avg',
+                                data: avg,
+                                type: 'column',
+                                color: 'rgba(255, 255, 10, 0.50)'
+
+                            }]
+                        });
+
+            }
+
+            },15000);
+        </script>
+
+-->
