@@ -34,7 +34,6 @@ particle.login({username: 'ec544group1@gmail.com', password: 'group1544'}).then(
             var count=0;
             var avg=0.00;
             var avg_data={};
-            //console.log('date_time:  ' + date_time);
             if (date_time != init_time){		
                 var times = date_time.toLocaleString().split(',');
                 var year = date_time.getFullYear(), 
@@ -50,10 +49,8 @@ particle.login({username: 'ec544group1@gmail.com', password: 'group1544'}).then(
                         console.log(error);
                     }
                     else if (results.length>0){
-                        //console.log(results);
                         for (var row in results)
                         {
-                            //console.log(row);
                             sum+=results[row].temp;
                             count+=1;
                         }
@@ -69,14 +66,13 @@ particle.login({username: 'ec544group1@gmail.com', password: 'group1544'}).then(
                             }
                         });
                     }
-                //con.release();
                 });
             }
-			//date_time = moment().format('YYYY-MM-DD H:mm:ss');
+			
             console.log('loop end');
         }, 2000);
 
-        //console.log('API call completed on promise resolve: ', data.body.access_token);
+        
         token = data.body.access_token;
         var deviceID = new Array();
         deviceID[0] = '330034001347353236343033';//sensor_1
@@ -87,7 +83,7 @@ particle.login({username: 'ec544group1@gmail.com', password: 'group1544'}).then(
         particle.getEventStream({ deviceId: deviceID[0], name: 'sensor_1', auth: token }).then(function(stream) {
             stream.on('event', function(data1) {
                 output('sensor1', data1);                
-                //console.log('parseTime!!   ' , actual_time);
+               
                 date_time = insert_individual_data('sensor_1', data1.data, data1.published_at,init_time);
                 
           });
@@ -119,24 +115,23 @@ function output( name ,data1){
 }
 
 function insert_individual_data(key, value, date_time, init_time){
-    //console.log('get here2222');
+    
     var actual_time = new Date(Date.parse(date_time));
     var obj = {};
     obj["sensor_id"] = key;
     obj["temp"] = value;
     if (date_time !== init_time)
     {
-        //console.log('start insert data');
-        //console.log(obj);
+        
         obj["time"] = actual_time;
-		//console.log('INSERT INTO sensor_data SET ?'+obj);
+		
         con.query('INSERT INTO sensor_data SET ?', obj, function(error, result)
         {
             if (error){
                 console.log('fail to insert new sensor data!');
             }
         });
-		//con.release();
+		
         return actual_time;
     }
 }
